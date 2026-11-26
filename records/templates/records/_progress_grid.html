@@ -1,0 +1,12 @@
+{# 7 天 × 早晚 的進度格子；需要 progress（records.progress.compute_progress 的結果） #}
+<div class="week">
+  {% for d in progress.days %}
+  <div class="d{% if d.is_today %} today{% endif %}">{{ d.label }}<br>{% if d.is_today %}今天{% else %}週{{ d.weekday }}{% endif %}
+    <span class="dot {{ d.morning.state }}" title="早上">早</span>
+    <span class="dot {{ d.evening.state }}" title="晚上">晚</span>
+  </div>
+  {% endfor %}
+</div>
+<div class="legend" style="margin-top:4px">
+  <span><i class="lg done"></i>已量</span><span><i class="lg pending"></i>待量</span><span><i class="lg missed"></i>錯過</span>
+</div>

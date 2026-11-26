@@ -8,8 +8,10 @@
   {% if form.non_field_errors %}<div class="form-errors">帳號或密碼不正確，請再試一次。</div>{% endif %}
   <div class="field"><label for="id_username">帳號</label>{{ form.username }}</div>
   <div class="field"><label for="id_password">密碼</label>{{ form.password }}</div>
+  <label class="toggle" style="border:0;margin:0 0 14px;padding:0">{{ form.remember_me }}<span>{{ form.remember_me.label }}</span></label>
   <input type="hidden" name="next" value="{{ next }}">
   <button type="submit" class="btn btn-block">登入</button>
+  <p class="help" style="text-align:center;margin-top:10px">用別人的手機或公用電腦時，請取消勾選「記住我」。</p>
   <p style="text-align:center;margin:14px 0 0">還沒有帳號？<a href="{% url 'accounts:signup' %}{% if next %}?next={{ next|urlencode }}{% endif %}">註冊一個</a></p>
 </form>
 {% endblock %}

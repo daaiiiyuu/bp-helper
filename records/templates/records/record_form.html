@@ -9,10 +9,20 @@
 
   <section class="card">
     <div class="step-head"><span class="n">1</span><h2>量測前檢查</h2></div>
-    {% if checklist_done %}
+    {% if checklist_mode == "none" %}
       <div class="done-banner">✓ 量測前檢查清單已完成</div>
+    {% elif checklist_mode == "quick" %}
+      {# 熟練模式：已有 3 筆以上完成檢查的紀錄，改成一鍵確認，清單收合可展開 #}
+      {% with f=form.checklist_fields.0 %}
+      <label class="check-item{% if f.errors %} has-error{% endif %}">{{ f }}<span><b>{{ f.label }}</b></span></label>
+      {{ f.errors }}
+      {% endwith %}
+      <details class="quick-list">
+        <summary>看看要準備哪些事（{{ checklist_items|length }} 項）</summary>
+        <ul>{% for key, label in checklist_items %}<li>{{ label }}</li>{% endfor %}</ul>
+      </details>
     {% else %}
-      <p class="muted">每一項都打勾後才能儲存。</p>
+      <p class="muted">每一項都打勾後才能儲存。<small>（熟練後會改成一鍵確認）</small></p>
       <ul class="checklist">
         {% for f in form.checklist_fields %}
         <li><label class="check-item{% if f.errors %} has-error{% endif %}">{{ f }}<span>{{ f.label }}</span></label></li>

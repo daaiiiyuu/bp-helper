@@ -7,29 +7,40 @@
   <a class="btn btn-sm" href="{% url 'records:create' %}">＋ 新增</a>
 </div>
 
+{# 722 面板：進行中 / 剛完成 / 尚未開始（顯示最近 7 天） #}
 <section class="card" style="margin-top:14px">
-  <h2>最近 7 天的 722 進度</h2>
-  <p class="muted" style="margin:0">早上、晚上各一格，已完成 <b style="color:var(--primary)">{{ progress.sessions }}</b> / {{ progress.total_sessions }} 次</p>
-  <div class="week">
-    {% for d in progress.days %}
-    <div class="d{% if d.is_today %} today{% endif %}">{{ d.label }}<br>{% if d.is_today %}今天{% else %}週{{ d.weekday }}{% endif %}
-      <span class="dot{% if d.morning %} on{% endif %}" title="早上">早</span>
-      <span class="dot{% if d.evening %} on{% endif %}" title="晚上">晚</span>
+  {% if panel == "active" %}
+    <div style="display:flex;justify-content:space-between;align-items:baseline;gap:8px">
+      <h2 style="margin:0">我的 722 週{% if progress.today_no %}・第 {{ progress.today_no }} 天{% endif %}</h2>
+      <a href="{% url 'records:challenge' challenge.pk %}" style="white-space:nowrap">詳細 ›</a>
     </div>
-    {% endfor %}
-  </div>
-  {% if progress.has_avg %}
-  <div class="stats">
-    <div class="stat"><small>平均收縮壓</small><b>{{ progress.avg_sys }}</b><small>mmHg</small></div>
-    <div class="stat"><small>平均舒張壓</small><b>{{ progress.avg_dia }}</b><small>mmHg</small></div>
-    <div class="stat"><small>平均心跳</small><b>{{ progress.avg_pulse }}</b><small>次/分</small></div>
-  </div>
-  <div class="ref-note{% if progress.above_ref %} above{% endif %}">
-    {% if progress.above_ref %}<b>這 7 天的平均超過國健署參考值 {{ progress.ref_sys }}/{{ progress.ref_dia }} mmHg。</b><br>{% endif %}
-    國健署建議：健康成人 7 天血壓平均超過 {{ progress.ref_sys }}/{{ progress.ref_dia }} mmHg，宜積極調整飲食、運動與作息並持續觀察；若仍未改善，可諮詢醫療人員。
-    （平均只計算早上、晚上兩個時段。）
-    <a href="{{ ref_source.url }}" target="_blank" rel="noopener">來源</a>
-  </div>
+    <p class="muted" style="margin:4px 0 0">已完成 <b style="color:var(--primary)">{{ progress.done }}</b> / {{ progress.total }} 次，還剩 {{ progress.remaining }} 次</p>
+    <div class="progress"><span style="width: {{ progress.percent }}%"></span></div>
+    {% include "records/_progress_grid.html" %}
+    <div class="btn-row" style="margin-top:12px">
+      <a class="btn btn-outline btn-sm" href="{% url 'records:challenge_ics' challenge.pk %}">📅 加入行事曆</a>
+      <a class="btn btn-outline btn-sm" href="{% url 'records:challenge_report' challenge.pk %}">🖨️ 目前報告</a>
+    </div>
+  {% elif panel == "finished" %}
+    <h2>🎉 722 週完成了</h2>
+    <p class="muted" style="margin:0">{{ challenge.start_date|date:"m/d" }}–{{ challenge.end_date|date:"m/d" }}，完成 <b style="color:var(--primary)">{{ progress.done }}</b> / {{ progress.total }} 次</p>
+    {% include "records/_progress_grid.html" %}
+    {% include "records/_averages.html" %}
+    <div class="btn-row" style="margin-top:12px">
+      <a class="btn btn-sm" href="{% url 'records:challenge_report' challenge.pk %}">🖨️ 列印就醫報告</a>
+      <a class="btn btn-outline btn-sm" href="{% url 'records:challenge_start' %}">開始新的 722 週</a>
+    </div>
+  {% else %}
+    <div class="cta-722">
+      <span class="big">722</span>
+      <div><h2 style="margin:0">開始我的 722 週</h2>
+      <small class="muted">連續 7 天、早晚各量一次；可加入手機行事曆提醒，完成後列印就醫報告</small></div>
+    </div>
+    <a class="btn btn-block" style="margin-top:12px" href="{% url 'records:challenge_start' %}">開始 722 週</a>
+    <h3 style="margin-top:18px">最近 7 天</h3>
+    <p class="muted" style="margin:0">早上、晚上各一格，已量 <b style="color:var(--primary)">{{ progress.done }}</b> / {{ progress.total }} 次</p>
+    {% include "records/_progress_grid.html" %}
+    {% include "records/_averages.html" %}
   {% endif %}
 </section>
 

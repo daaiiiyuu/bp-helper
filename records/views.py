@@ -5,25 +5,48 @@ records app 的 View：血壓紀錄新增、查詢（依日期篩選）、趨勢
 確保每個人只看得到、改得到自己的紀錄。
 """
 import csv
-from datetime import timedelta
+from datetime import time, timedelta
 
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.core.paginator import Paginator
-from django.db.models import Avg
 from django.http import HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
-from django.views.decorators.http import require_POST
 
-from education.content import SOURCE_REFERENCE_VALUE
+from django.urls import reverse
+
+from education.content import CHECKLIST_ITEMS, SOURCE_722, SOURCE_REFERENCE_VALUE
 from education.views import checklist_recently_done
 
-from .charts import REF_DIA, REF_SYS, build_trend_chart
-from .forms import DateFilterForm, RecordEditForm, RecordForm, guess_period
-from .models import BloodPressureRecord
+from .calendar import build_ics
+from .charts import build_trend_chart
+from .forms import ChallengeForm, DateFilterForm, RecordEditForm, RecordForm, guess_period
+from .models import BloodPressureRecord, Challenge722
+from .progress import compute_progress, rolling_progress
 
 Period = BloodPressureRecord.Period
+
+# 有幾筆「完成檢查」的紀錄之後，檢查清單改成一鍵確認（熟練模式）
+QUICK_CHECKLIST_AFTER = 3
+# 挑戰結束後幾天內，紀錄頁仍顯示「完成！看報告」
+SHOW_FINISHED_DAYS = 30
+
+
+def latest_challenge(user):
+    return Challenge722.objects.filter(user=user).first()  # ordering = -created_at
+
+
+def checklist_mode(request):
+    """
+    full  ：6 項逐一勾選（新手）
+    quick ：一個「我已完成量測前準備」確認，清單收合可展開（熟練）
+    none  ：一小時內剛在檢查清單頁完成過，不用再勾
+    """
+    if checklist_recently_done(request):
+        return "none"
+    done = BloodPressureRecord.objects.filter(user=request.user, checklist_done=True).count()
+    return "quick" if done >= QUICK_CHECKLIST_AFTER else "full"
 
 
 def _filtered_records(request):
@@ -36,49 +59,6 @@ def _filtered_records(request):
         if form.cleaned_data.get("end"):
             qs = qs.filter(measured_at__date__lte=form.cleaned_data["end"])
     return qs, form
-
-
-def _progress_722(user):
-    """
-    最近 7 天（含今天）的 722 進度：
-    每天早上、晚上各一格，共 14 格；並計算這 7 天的平均血壓。
-    """
-    today = timezone.localdate()
-    days = [today - timedelta(days=i) for i in range(6, -1, -1)]
-    recent = BloodPressureRecord.objects.filter(
-        user=user, measured_at__date__gte=days[0], measured_at__date__lte=today)
-
-    done = set()
-    for r in recent:
-        d = timezone.localtime(r.measured_at).date()
-        done.add((d, r.period))
-
-    weekday = "一二三四五六日"
-    rows = [{
-        "date": d,
-        "label": f"{d.month}/{d.day}",
-        "weekday": weekday[d.weekday()],
-        "is_today": d == today,
-        "morning": (d, Period.MORNING) in done,
-        "evening": (d, Period.EVENING) in done,
-    } for d in days]
-    sessions = sum(r["morning"] + r["evening"] for r in rows)
-
-    avg = recent.filter(period__in=[Period.MORNING, Period.EVENING]).aggregate(
-        sys=Avg("systolic"), dia=Avg("diastolic"), pulse=Avg("pulse"))
-    has_avg = avg["sys"] is not None
-    return {
-        "days": rows,
-        "sessions": sessions,
-        "total_sessions": 14,
-        "percent": round(sessions / 14 * 100),
-        "has_avg": has_avg,
-        "avg_sys": round(avg["sys"]) if has_avg else None,
-        "avg_dia": round(avg["dia"]) if has_avg else None,
-        "avg_pulse": round(avg["pulse"]) if has_avg else None,
-        "above_ref": has_avg and (avg["sys"] > REF_SYS or avg["dia"] > REF_DIA),
-        "ref_sys": REF_SYS, "ref_dia": REF_DIA,
-    }
 
 
 # ------------------------------------------------------------------
@@ -100,9 +80,20 @@ def record_list(request):
         "query": params.urlencode(),
         "total": page.paginator.count,
         "chart": build_trend_chart(qs),
-        "progress": _progress_722(request.user),
         "ref_source": SOURCE_REFERENCE_VALUE,
+        **_challenge_panel(request.user),
     })
+
+
+def _challenge_panel(user):
+    """紀錄頁上方的 722 面板：進行中的挑戰 / 剛完成的挑戰 / 最近 7 天＋開始按鈕"""
+    today = timezone.localdate()
+    ch = latest_challenge(user)
+    if ch and not ch.is_finished(today):
+        return {"panel": "active", "challenge": ch, "progress": compute_progress(user, ch.start_date)}
+    if ch and (today - ch.end_date).days <= SHOW_FINISHED_DAYS:
+        return {"panel": "finished", "challenge": ch, "progress": compute_progress(user, ch.start_date)}
+    return {"panel": "rolling", "challenge": None, "progress": rolling_progress(user)}
 
 
 # ------------------------------------------------------------------
@@ -110,25 +101,32 @@ def record_list(request):
 # ------------------------------------------------------------------
 @login_required
 def record_create(request):
-    checklist_done = checklist_recently_done(request)
+    mode = checklist_mode(request)
     if request.method == "POST":
-        form = RecordForm(request.POST, require_checklist=not checklist_done)
+        form = RecordForm(request.POST, checklist_mode=mode)
         if form.is_valid():
             record = BloodPressureRecord.objects.create(user=request.user, **form.to_record_values())
             msg = f"已儲存：{record.systolic}/{record.diastolic} mmHg，心跳 {record.pulse}"
             if record.readings_count == 2:
                 msg += "（兩遍平均）"
+            ch = latest_challenge(request.user)
+            if ch and not ch.is_finished() and record.period != Period.OTHER:
+                p = compute_progress(request.user, ch.start_date)
+                msg += f"。722 週進度 {p['done']}/{p['total']}"
+                if p["done"] == p["total"]:
+                    msg += "，全部完成！可以列印就醫報告了"
             messages.success(request, msg)
             return redirect("records:list")
     else:
         now = timezone.localtime()
         form = RecordForm(
-            require_checklist=not checklist_done,
+            checklist_mode=mode,
             initial={"measured_at": now.strftime("%Y-%m-%dT%H:%M"), "period": guess_period(now)},
         )
     return render(request, "records/record_form.html", {
         "form": form,
-        "checklist_done": checklist_done,
+        "checklist_mode": mode,
+        "checklist_items": CHECKLIST_ITEMS,
         "now": timezone.localtime(),
     })
 
@@ -163,7 +161,7 @@ def export_csv(request):
     filename = f"blood_pressure_{timezone.localdate():%Y%m%d}.csv"
     resp = HttpResponse(content_type="text/csv; charset=utf-8")
     resp["Content-Disposition"] = f'attachment; filename="{filename}"'
-    resp.write("﻿")  # BOM：讓 Excel 開啟時中文不會變亂碼
+    resp.write("\ufeff")  # BOM：讓 Excel 開啟時中文不會變亂碼
     w = csv.writer(resp)
     w.writerow(["量測日期", "時間", "時段", "收縮壓(mmHg)", "舒張壓(mmHg)",
                 "心跳(次/分)", "量測遍數", "已完成量測前檢查", "備註"])
@@ -173,3 +171,70 @@ def export_csv(request):
                     r.systolic, r.diastolic, r.pulse, r.readings_count,
                     "是" if r.checklist_done else "否", r.note])
     return resp
+
+
+# ------------------------------------------------------------------
+# 我的 722 週：開始挑戰 → 加入行事曆 → 每天量 → 列印就醫報告
+# ------------------------------------------------------------------
+@login_required
+def challenge_start(request):
+    current = latest_challenge(request.user)
+    active = current if current and not current.is_finished() else None
+    if request.method == "POST":
+        form = ChallengeForm(request.POST)
+        if form.is_valid():
+            ch = form.save(commit=False)
+            ch.user = request.user
+            ch.start_date = timezone.localdate() + timedelta(days=int(form.cleaned_data["start_when"]))
+            ch.save()
+            messages.success(request, f"722 週開始了！{ch.start_date:%m/%d} 到 {ch.end_date:%m/%d}")
+            return redirect("records:challenge", pk=ch.pk)
+    else:
+        now = timezone.localtime()
+        # 晚上才開始的話，今天早上已經錯過，預設從明天開始
+        form = ChallengeForm(initial={
+            "start_when": "0" if now.hour < 12 else "1",
+            "morning_time": time(7, 0),
+            "evening_time": time(21, 30),
+        })
+    return render(request, "records/challenge_start.html", {
+        "form": form, "active": active, "source": SOURCE_722,
+    })
+
+
+@login_required
+def challenge_detail(request, pk):
+    ch = get_object_or_404(Challenge722, pk=pk, user=request.user)
+    return render(request, "records/challenge_detail.html", {
+        "challenge": ch,
+        "progress": compute_progress(request.user, ch.start_date),
+        "finished": ch.is_finished(),
+    })
+
+
+@login_required
+def challenge_ics(request, pk):
+    ch = get_object_or_404(Challenge722, pk=pk, user=request.user)
+    content, _ = build_ics(ch, request.build_absolute_uri(reverse("records:create")),
+                           host=request.get_host().split(":")[0])
+    resp = HttpResponse(content, content_type="text/calendar; charset=utf-8")
+    # inline：iPhone Safari 會直接跳出「加入行事曆」
+    resp["Content-Disposition"] = f'inline; filename="722_{ch.start_date:%Y%m%d}.ics"'
+    return resp
+
+
+@login_required
+def challenge_report(request, pk):
+    ch = get_object_or_404(Challenge722, pk=pk, user=request.user)
+    progress = compute_progress(request.user, ch.start_date)
+    notes = [r for d in progress["days"] for p in ("morning", "evening")
+             for r in d[p]["records"] if r.note]
+    return render(request, "records/challenge_report.html", {
+        "challenge": ch,
+        "progress": progress,
+        "notes": notes,
+        "finished": ch.is_finished(),
+        "printed_at": timezone.localtime(),
+        "source": SOURCE_722,
+        "ref_source": SOURCE_REFERENCE_VALUE,
+    })

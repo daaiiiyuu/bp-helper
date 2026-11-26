@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+{% block title %}帳號設定{% endblock %}
+{% block content %}
+<h1>帳號設定</h1>
+<div class="card">
+  <p>帳號：<b>{{ user.username }}</b><br><small class="muted">已記錄 {{ record_count }} 筆血壓</small></p>
+  <div class="settings-list">
+    <a href="{% url 'accounts:password_change' %}"><span>🔑 修改密碼</span><span class="go">›</span></a>
+    <a href="{% url 'records:export' %}"><span>📄 下載全部紀錄（CSV）</span><span class="go">›</span></a>
+    <a href="#" data-toggle-bigtext><span>🔠 大字模式：<b data-bigtext-state>關閉</b></span><span class="go">切換</span></a>
+    <form method="post" action="{% url 'accounts:logout' %}">{% csrf_token %}<button type="submit"><span>🚪 登出</span><span class="go">›</span></button></form>
+  </div>
+</div>
+<div class="card">
+  <h2>刪除帳號</h2>
+  <p class="muted">刪除後，你的帳號與所有血壓紀錄都會永久刪除，無法復原。建議先下載 CSV 備份。</p>
+  <a class="btn btn-outline btn-sm" style="color:#b93a32;border-color:#e2b2ad" href="{% url 'accounts:delete' %}">刪除我的帳號</a>
+</div>
+{% endblock %}

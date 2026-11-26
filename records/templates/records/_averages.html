@@ -1,0 +1,14 @@
+{# 平均值與國健署參考值說明；需要 progress、ref_source #}
+{% if progress.avg %}
+<div class="stats">
+  <div class="stat"><small>平均收縮壓</small><b>{{ progress.avg.sys }}</b><small>mmHg</small></div>
+  <div class="stat"><small>平均舒張壓</small><b>{{ progress.avg.dia }}</b><small>mmHg</small></div>
+  <div class="stat"><small>平均心跳</small><b>{{ progress.avg.pulse }}</b><small>次/分</small></div>
+</div>
+<div class="ref-note{% if progress.above_ref %} above{% endif %}">
+  {% if progress.above_ref %}<b>這段期間的平均超過國健署參考值 {{ progress.ref_sys }}/{{ progress.ref_dia }} mmHg。</b><br>{% endif %}
+  國健署建議：健康成人 7 天血壓平均超過 {{ progress.ref_sys }}/{{ progress.ref_dia }} mmHg，宜積極調整飲食、運動與作息並持續觀察；若仍未改善，可諮詢醫療人員。
+  （平均只計算早上、晚上兩個時段。）
+  <a href="{{ ref_source.url }}" target="_blank" rel="noopener">來源</a>
+</div>
+{% endif %}

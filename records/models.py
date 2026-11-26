@@ -47,3 +47,39 @@ class BloodPressureRecord(models.Model):
 
     def __str__(self):
         return f"{self.user} {self.measured_at:%Y-%m-%d %H:%M} {self.systolic}/{self.diastolic}"
+
+
+class Challenge722(models.Model):
+    """
+    「我的 722 週」：一次連續 7 天、每天早晚各一次的量測挑戰。
+
+    國健署建議 18 歲以上民眾每年至少用 722 原則在家量一次血壓，
+    所以挑戰有明確的起訖日；結束後可以列印就醫報告，一年後再做一次。
+    morning_time / evening_time 是使用者平常「起床後」「睡前」的時間，
+    只用來產生行事曆提醒，不影響紀錄本身。
+    """
+    DAYS = 7
+
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE,
+                             related_name="challenges", verbose_name="使用者")
+    start_date = models.DateField("開始日期")
+    morning_time = models.TimeField("早上提醒時間（起床後）")
+    evening_time = models.TimeField("晚上提醒時間（睡前）")
+    created_at = models.DateTimeField("建立時間", auto_now_add=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+        verbose_name = "722 週挑戰"
+        verbose_name_plural = "722 週挑戰"
+
+    def __str__(self):
+        return f"{self.user} 722 週 {self.start_date:%Y-%m-%d}"
+
+    @property
+    def end_date(self):
+        from datetime import timedelta
+        return self.start_date + timedelta(days=self.DAYS - 1)
+
+    def is_finished(self, today=None):
+        from django.utils import timezone
+        return (today or timezone.localdate()) > self.end_date

@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% block title %}刪除帳號{% endblock %}
+{% block content %}
+<a class="back" href="{% url 'accounts:settings' %}">‹ 帳號設定</a>
+<div class="card">
+  <h1>確定要刪除帳號？</h1>
+  <p>帳號 <b>{{ user.username }}</b> 與 <b>{{ record_count }} 筆</b>血壓紀錄、所有 722 週資料都會<b>永久刪除，無法復原</b>。</p>
+  <p><a href="{% url 'records:export' %}">先下載 CSV 備份 ›</a></p>
+  <form method="post" novalidate>
+    {% csrf_token %}
+    <div class="field">
+      <label for="{{ form.password.id_for_label }}">{{ form.password.label }}</label>{{ form.password }}{{ form.password.errors }}
+    </div>
+    <div class="btn-row">
+      <a class="btn btn-outline" href="{% url 'accounts:settings' %}">取消</a>
+      <button class="btn btn-danger" type="submit">永久刪除</button>
+    </div>
+  </form>
+</div>
+{% endblock %}

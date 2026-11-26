@@ -6,9 +6,9 @@
 
 Django 5.2 + SQLite，手機優先的 RWD 網站。衛教內容依據衛生福利部國民健康署「居家量血壓 722」衛教資訊。
 
-| 首頁 | 圖文學習 | Quiz 答錯回饋 | 我的紀錄 |
-|---|---|---|---|
-| <img src="docs/screenshots/home.png" width="200"> | <img src="docs/screenshots/learn.png" width="200"> | <img src="docs/screenshots/quiz.png" width="200"> | <img src="docs/screenshots/records.png" width="200"> |
+| 首頁 | 圖文學習 | Quiz 答錯回饋 | 我的 722 週 | 就醫報告 |
+|---|---|---|---|---|
+| <img src="docs/screenshots/home.png" width="160"> | <img src="docs/screenshots/learn.png" width="160"> | <img src="docs/screenshots/quiz.png" width="160"> | <img src="docs/screenshots/challenge.png" width="160"> | <img src="docs/screenshots/report.png" width="160"> |
 
 ---
 
@@ -22,7 +22,7 @@ source .venv/bin/activate          # Windows：.venv\Scripts\activate
 pip install -r requirements.txt
 
 python manage.py migrate           # 建立資料庫，並自動寫入 5 題預設 Quiz
-python manage.py seed_demo         # （選用）建立展示帳號 demo / demo722bp 與 7 天示範紀錄
+python manage.py seed_demo         # （選用）建立展示帳號 demo / demo722bp、7 天示範紀錄與進行中的 722 週
 python manage.py createsuperuser   # （選用）建立後台管理員，可到 /admin 修改題目
 python manage.py runserver
 ```
@@ -37,7 +37,7 @@ DJANGO_ALLOWED_HOSTS=* python manage.py runserver 0.0.0.0:8000
 
 手機開 `http://<電腦的區網 IP>:8000/`，或在電腦開 `/qr/` 直接掃碼。
 
-**執行測試：** `python manage.py test`（23 個測試；push 到 GitHub 時也會由 GitHub Actions 自動執行，設定在 `.github/workflows/tests.yml`）
+**執行測試：** `python manage.py test`（35 個測試；push 到 GitHub 時也會由 GitHub Actions 自動執行，設定在 `.github/workflows/tests.yml`）
 
 ---
 
@@ -54,6 +54,28 @@ DJANGO_ALLOWED_HOSTS=* python manage.py runserver 0.0.0.0:8000
 | 血壓紀錄新增與查詢（個人帳號） | 註冊／登入；**量測時間自動帶入按下儲存當下的時間**（不用手打，要補登過去的紀錄再勾選「補登」）；時段（早上／晚上）依時間自動選好；輸入第 1、2 遍數值後**自動取平均**（722 原則）；可以修改、刪除；每人只看得到自己的紀錄 | `/records/` |
 | 手機掃碼即可開啟 | 自動產生本站網址的 QR Code，可以列印給門診使用 | `/qr/` |
 
+### 讓人「記得量、願意量」（期中後新增）
+
+提案中「民眾回家後容易忘記怎麼量、也容易忘記量」的問題，用下面這條流程解決：
+**開始 722 週 → 一鍵加入手機行事曆 → 手機提醒去量 → 第 7 天列印就醫報告給醫師**
+
+| 功能 | 說明 | 網址 |
+|---|---|---|
+| 我的 722 週 | 選擇今天或明天開始，連續 7 天 × 早晚共 14 格；格子分成「已量／待量／錯過」，顯示「第 N 天、還剩幾次」；存檔時也會顯示目前進度 | `/records/722/start/` |
+| 加入行事曆 | 依使用者自己設定的「起床後」「睡前」時間，產生 `.ics` 檔（14 個量測提醒 ＋ 一年後再做一次 722 的提醒），iPhone／Android 內建行事曆時間到就會響；不需要推播伺服器 | `/records/722/<id>/calendar.ics` |
+| 就醫報告 | 一張 A4：7 天逐筆數值、早上／晚上／整體平均、量測方式與資料來源，最上面留有手寫姓名欄、勾選量測手臂；可直接列印或存成 PDF | `/records/722/<id>/report/` |
+
+### 降低每次量測的阻力
+
+| 功能 | 說明 |
+|---|---|
+| 量測時間自動帶入 | 預設使用按下「儲存」當下的時間；要補登過去的紀錄才勾選「補登」 |
+| 熟練後簡化檢查清單 | 前 3 次逐項勾選 6 項；之後改成一個「我已完成量測前準備」確認，清單收合起來，點開還看得到 |
+| 記住我（90 天） | 登入頁預設勾選，長輩不用常常重新登入；用別人的手機時可以取消 |
+| 大字模式 | 頂部「Aa」按鈕切換，內容字體約放大 1.25 倍；導覽列維持固定大小不會擠壞 |
+| 防止重複送出 | 網路慢時連按兩下「儲存」只會存一筆 |
+| 帳號設定 | 修改密碼（本站不收 Email，所以無法寄信重設密碼）、下載全部紀錄、刪除帳號（需再輸入密碼，血壓紀錄會一併刪除） |
+
 ### Nice to Have
 
 | 提案項目 | 狀態 |
@@ -61,12 +83,11 @@ DJANGO_ALLOWED_HOSTS=* python manage.py runserver 0.0.0.0:8000
 | 血壓折線趨勢圖 | ✅ 完成：收縮壓、舒張壓兩條線，加上國健署參考值虛線；伺服器端產生 SVG，不需要外部套件 |
 | 依日期篩選紀錄 | ✅ 完成 |
 | 紀錄匯出 CSV | ✅ 完成（會套用目前的篩選條件；加了 BOM，用 Excel 開中文不會變亂碼） |
-| 每日量測提醒 | ⏳ 尚未實作（需要推播或 Email 服務） |
+| 每日量測提醒 | ✅ 以「加入行事曆」實作（見上方）；LINE 推播列為未來展望 |
 | 更多互動題型 | ⏳ 尚未實作 |
 
 ### 額外加上的功能
 
-- **722 進度表**：最近 7 天的早／晚各一格（共 14 格），已經量過的格子會亮起來
 - **7 天平均**：平均只算早上、晚上兩個時段；超過國健署參考值 120/80 mmHg 時，會顯示國健署的建議原文與來源（不做診斷）
 - **自動時間**：畫面上有即時時鐘；儲存時用伺服器時間（Asia/Taipei），所以就算頁面開著很久才送出，時間也是對的
 - **輸入防呆**：收縮壓必須大於舒張壓、不能選未來時間、數值超出合理範圍會提示，第 2 遍要嘛三格都填、要嘛三格都空
@@ -101,6 +122,18 @@ DJANGO_ALLOWED_HOSTS=* python manage.py runserver 0.0.0.0:8000
 
 > 數值範圍限制（收縮壓 50–260、舒張壓 30–160、心跳 30–220）只是為了擋掉打錯字，**不是醫療判讀標準**。
 
+### 資料表：`Challenge722`（我的 722 週）
+
+| 欄位 | 型別 | 說明 |
+|---|---|---|
+| user | FK → User | 誰的挑戰 |
+| start_date | Date | 開始日期；結束日 = 開始日 + 6 天 |
+| morning_time | Time | 平常起床後的時間（只用來產生行事曆提醒） |
+| evening_time | Time | 平常睡前的時間 |
+| created_at | DateTime | 建立時間（最新的一筆就是目前的挑戰） |
+
+挑戰本身不另外存「完成了哪幾格」，而是用期間內的 `BloodPressureRecord`（時段為早上／晚上）即時計算（`records/progress.py`），所以修改或刪除紀錄後，進度和報告會自動更新。
+
 ### Quiz：`Question` / `Choice`
 
 題目存在資料庫中，預設 5 題由 `education/migrations/0002_seed_quiz.py` 寫入；衛教人員可以從 `/admin` 新增或修改題目。
@@ -120,8 +153,10 @@ bp_helper/
 ├── records/             血壓紀錄
 │   ├── forms.py         輸入表單（兩遍取平均、檢查清單、防呆）
 │   ├── charts.py        趨勢圖座標計算
+│   ├── progress.py      722 進度計算（格子狀態、平均值）
+│   ├── calendar.py      產生 .ics 行事曆檔
 │   └── management/commands/seed_demo.py   展示用假資料
-├── accounts/            註冊／登入
+├── accounts/            註冊／登入（記住我）、修改密碼、刪除帳號
 ├── templates/base.html  共用版型與導覽列
 └── static/css/site.css  全站樣式
 ```

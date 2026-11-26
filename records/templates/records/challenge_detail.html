@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% block title %}我的 722 週{% endblock %}
+{% block content %}
+<a class="back" href="{% url 'records:list' %}">‹ 我的紀錄</a>
+<h1>我的 722 週</h1>
+<p class="muted">{{ challenge.start_date|date:"Y/m/d" }}–{{ challenge.end_date|date:"m/d" }}・提醒時間 {{ challenge.morning_time|time:"H:i" }}／{{ challenge.evening_time|time:"H:i" }}</p>
+
+<section class="card">
+  {% if finished %}
+    <h2>🎉 這次 722 週結束了</h2>
+    <p>完成 <b>{{ progress.done }}</b> / {{ progress.total }} 次。把報告印出來，看診時帶給醫師參考。</p>
+  {% elif progress.today_no %}
+    <h2>第 {{ progress.today_no }} 天</h2>
+    <p>已完成 <b style="color:var(--primary)">{{ progress.done }}</b> / {{ progress.total }} 次，還剩 {{ progress.remaining }} 次{% if progress.missed %}（錯過 {{ progress.missed }} 次，沒關係，繼續量就好）{% endif %}</p>
+  {% else %}
+    <h2>{{ challenge.start_date|date:"m/d" }} 開始</h2>
+    <p>明天起床後記得量第一次！</p>
+  {% endif %}
+  <div class="progress"><span style="width: {{ progress.percent }}%"></span></div>
+  {% include "records/_progress_grid.html" %}
+</section>
+
+{% if not finished %}
+<section class="card card-soft">
+  <h2>📅 加入手機行事曆</h2>
+  <p>一鍵把接下來每天早晚的量測時間加進手機行事曆，時間到手機會提醒你。也會在一年後提醒你再做一次 722。</p>
+  <a class="btn btn-block" href="{% url 'records:challenge_ics' challenge.pk %}">加入行事曆提醒</a>
+  <p class="help" style="margin-top:8px">iPhone：點了之後選「全部加入」。Android：用「Google 日曆」開啟後儲存。</p>
+</section>
+{% endif %}
+
+<div class="btn-row">
+  {% if not finished %}<a class="btn" href="{% url 'records:create' %}">✍️ 記錄血壓</a>{% endif %}
+  <a class="btn {% if finished %}{% else %}btn-outline{% endif %}" href="{% url 'records:challenge_report' challenge.pk %}">🖨️ {% if finished %}列印就醫報告{% else %}目前報告{% endif %}</a>
+</div>
+{% if finished %}
+<p style="text-align:center;margin-top:14px"><a href="{% url 'records:challenge_start' %}">開始新的 722 週 ›</a></p>
+{% endif %}
+{% endblock %}

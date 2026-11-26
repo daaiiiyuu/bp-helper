@@ -13,7 +13,7 @@ from django.contrib.auth.models import User
 from django.core.management.base import BaseCommand
 from django.utils import timezone
 
-from records.models import BloodPressureRecord
+from records.models import BloodPressureRecord, Challenge722
 
 
 class Command(BaseCommand):
@@ -29,6 +29,7 @@ class Command(BaseCommand):
             user.save()
         if opts["reset"]:
             user.bp_records.all().delete()
+            user.challenges.all().delete()
 
         rng = random.Random(722)
         today = timezone.localtime().replace(second=0, microsecond=0)
@@ -44,4 +45,8 @@ class Command(BaseCommand):
                     systolic=rng.randint(116, 134), diastolic=rng.randint(74, 86),
                     pulse=rng.randint(64, 80), readings_count=2, checklist_done=True)
                 n += 1
-        self.stdout.write(self.style.SUCCESS(f"demo / demo722bp，新增 {n} 筆示範紀錄"))
+        # 進行中的 722 週：5 天前開始，今天是第 6 天
+        if not user.challenges.exists():
+            Challenge722.objects.create(user=user, start_date=today.date() - timedelta(days=5),
+                                        morning_time="07:00", evening_time="22:00")
+        self.stdout.write(self.style.SUCCESS(f"demo / demo722bp，新增 {n} 筆示範紀錄與 1 個 722 週"))

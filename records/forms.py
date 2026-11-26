@@ -14,7 +14,7 @@ from django.utils import timezone
 
 from education.content import CHECKLIST_ITEMS
 
-from .models import BloodPressureRecord
+from .models import BloodPressureRecord, Challenge722
 
 # 與 Model 的 validators 一致，僅用來擋打錯字
 RANGES = {"systolic": (50, 260), "diastolic": (30, 160), "pulse": (30, 220)}
@@ -70,10 +70,22 @@ class RecordForm(forms.Form):
     note = forms.CharField(label="備註（選填）", max_length=200, required=False,
                            widget=forms.TextInput(attrs={"placeholder": "例如：昨晚睡不好"}))
 
-    def __init__(self, *args, require_checklist=True, **kwargs):
+    def __init__(self, *args, checklist_mode="full", **kwargs):
+        """
+        checklist_mode：
+          full  — 6 項逐一勾選（新手）
+          quick — 一個總確認（熟練後，見 views.checklist_mode）
+          none  — 剛在檢查清單頁完成，不用再勾
+        """
         super().__init__(*args, **kwargs)
         self.checklist_keys = []
-        if require_checklist:
+        if checklist_mode == "quick":
+            self.fields["check_all"] = forms.BooleanField(
+                label="我已完成量測前準備", required=True,
+                error_messages={"required": "請先確認已完成量測前準備"},
+            )
+            self.checklist_keys.append("check_all")
+        elif checklist_mode == "full":
             for key, label in CHECKLIST_ITEMS:
                 name = f"check_{key}"
                 self.fields[name] = forms.BooleanField(
@@ -126,7 +138,7 @@ class RecordForm(forms.Form):
             measured_at=d["measured_at"],
             period=d["period"],
             readings_count=2 if self.has_second else 1,
-            # 能走到這裡代表：表單內清單全勾，或一小時內已在檢查清單頁完成
+            # 能走到這裡代表：表單內清單已確認，或一小時內已在檢查清單頁完成
             checklist_done=True,
             note=d.get("note", ""),
         )
@@ -165,3 +177,23 @@ class DateFilterForm(forms.Form):
         if data.get("start") and data.get("end") and data["start"] > data["end"]:
             raise forms.ValidationError("開始日期不能晚於結束日期")
         return data
+
+
+class ChallengeForm(forms.ModelForm):
+    """開始我的 722 週：選開始日（今天／明天）與平常起床後、睡前的時間"""
+    start_when = forms.ChoiceField(
+        label="從哪一天開始", widget=forms.RadioSelect,
+        choices=[("0", "今天"), ("1", "明天")],
+    )
+
+    class Meta:
+        model = Challenge722
+        fields = ["morning_time", "evening_time"]
+        widgets = {
+            "morning_time": forms.TimeInput(attrs={"type": "time"}, format="%H:%M"),
+            "evening_time": forms.TimeInput(attrs={"type": "time"}, format="%H:%M"),
+        }
+        help_texts = {
+            "morning_time": "平常早上起床後的時間",
+            "evening_time": "平常準備睡覺前的時間",
+        }

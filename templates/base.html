@@ -5,6 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#0e7c80">
   <title>{% block title %}居家量血壓小幫手{% endblock %}｜居家血壓量測衛教與紀錄系統</title>
+  {# 大字模式：在畫面出現前就套用，避免字體先小後大閃一下 #}
+  <script>try { if (localStorage.getItem("bigText") === "1") document.documentElement.classList.add("big"); } catch (e) {}</script>
   <link rel="stylesheet" href="{% static 'css/site.css' %}">
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🩺</text></svg>">
 </head>
@@ -12,17 +14,18 @@
   <header class="topbar">
     <div class="wrap topbar-inner">
       <a class="brand" href="{% url 'education:home' %}">
-        <span class="brand-mark" aria-hidden="true">♥</span>居家量血壓小幫手
+        <span class="brand-mark" aria-hidden="true">♥</span><span class="brand-text">居家量血壓小幫手</span>
       </a>
-      {% if user.is_authenticated %}
-        <form method="post" action="{% url 'accounts:logout' %}" class="inline">
-          {% csrf_token %}
-          <span class="who">{{ user.username }}</span>
-          <button type="submit" class="link-btn">登出</button>
-        </form>
-      {% else %}
-        <a class="topbar-login" href="{% url 'accounts:login' %}">登入</a>
-      {% endif %}
+      <div class="topbar-right">
+        <button type="button" class="link-btn" data-toggle-bigtext aria-label="切換大字模式">
+          <span class="aa">Aa</span> <span data-bigtext-state>大字</span>
+        </button>
+        {% if user.is_authenticated %}
+          <a class="who" href="{% url 'accounts:settings' %}">👤 {{ user.username }}</a>
+        {% else %}
+          <a class="topbar-login" href="{% url 'accounts:login' %}">登入</a>
+        {% endif %}
+      </div>
     </div>
   </header>
 
@@ -52,5 +55,45 @@
     衛教內容依據：衛生福利部國民健康署「居家量血壓 722」。本網站僅供衛教與紀錄，不能取代醫師診斷。<br>
     115-1 Web 程式設計 · 李佳蓁、李岱諭、陳戎慈 · <a href="{% url 'education:qr' %}">分享本站 QR Code</a>
   </footer>
+
+  <script>
+  (function () {
+    /* ---- 大字模式切換（記在這台手機的瀏覽器裡） ---- */
+    const root = document.documentElement;
+    function label() {
+      const on = root.classList.contains("big");
+      document.querySelectorAll("[data-bigtext-state]").forEach(el => {
+        el.textContent = el.closest(".topbar") ? (on ? "一般" : "大字") : (on ? "開啟" : "關閉");
+      });
+    }
+    document.querySelectorAll("[data-toggle-bigtext]").forEach(btn => btn.addEventListener("click", e => {
+      e.preventDefault();
+      const on = root.classList.toggle("big");
+      try { localStorage.setItem("bigText", on ? "1" : "0"); } catch (err) {}
+      label();
+    }));
+    label();
+
+    /* ---- 防止重複送出：按一次之後鎖住按鈕（網路慢時連按兩下不會存兩筆） ---- */
+    document.addEventListener("submit", e => {
+      const form = e.target;
+      if (form.method.toLowerCase() !== "post") return;
+      if (form.dataset.submitting) { e.preventDefault(); return; }
+      form.dataset.submitting = "1";
+      // 延後到下一輪再鎖：如果現在就 disabled，按鈕的 name/value（例如 Quiz 選項）會送不出去
+      setTimeout(() => form.querySelectorAll("button[type=submit], button:not([type])").forEach(b => {
+        b.disabled = true;
+        b.classList.add("is-busy");
+      }), 0);
+    });
+    // 從下一頁按「上一頁」回來時，把按鈕解鎖
+    window.addEventListener("pageshow", () => {
+      document.querySelectorAll("form[data-submitting]").forEach(f => {
+        delete f.dataset.submitting;
+        f.querySelectorAll("button.is-busy").forEach(b => { b.disabled = false; b.classList.remove("is-busy"); });
+      });
+    });
+  })();
+  </script>
 </body>
 </html>

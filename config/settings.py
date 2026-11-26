@@ -112,6 +112,9 @@ if not DEBUG:
     SECURE_HSTS_SECONDS = 60 * 60 * 24 * 30
     SECURE_REFERRER_POLICY = "same-origin"
 
+# 登入維持 90 天：長輩忘記密碼就等於流失（登入頁可取消「記住我」）
+SESSION_COOKIE_AGE = 60 * 60 * 24 * 90
+
 LOGIN_URL = "accounts:login"
 LOGIN_REDIRECT_URL = "records:list"
 LOGOUT_REDIRECT_URL = "education:home"

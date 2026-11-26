@@ -23,13 +23,14 @@
 }
 
 * { box-sizing: border-box; }
-html { -webkit-text-size-adjust: 100%; }
+html { -webkit-text-size-adjust: 100%; font-size: 17px; }   /* 長輩使用：比一般網站大一點 */
+html.big { font-size: 21px; }                                  /* 大字模式：約放大 1.25 倍 */
 body {
   margin: 0;
   overflow-x: hidden;
   font-family: -apple-system, BlinkMacSystemFont, "PingFang TC", "Noto Sans TC",
                "Microsoft JhengHei", "Segoe UI", sans-serif;
-  font-size: 17px;           /* 長輩使用：字級比一般網站大一點 */
+  font-size: 1rem;
   line-height: 1.65;
   color: var(--text);
   background: var(--bg);
@@ -53,7 +54,17 @@ small, .muted { color: var(--muted); }
 .brand { color: #fff; font-weight: 700; text-decoration: none; font-size: 1.08rem; }
 .brand-mark { display: inline-grid; place-items: center; width: 28px; height: 28px; margin-right: 8px;
   border-radius: 8px; background: #fff; color: var(--primary); font-size: .9rem; }
-.who { font-size: .9rem; opacity: .85; margin-right: 6px; }
+.topbar-right { display: flex; align-items: center; gap: 10px; }
+.who { color: #fff; font-size: .9rem; text-decoration: none; max-width: 8em; overflow: hidden;
+  text-overflow: ellipsis; white-space: nowrap; }
+.aa { font-weight: 800; }
+button.is-busy { opacity: .6; cursor: progress; }
+/* 頂部列與底部導覽用固定 px：大字模式只放大內容，導覽列不會擠到換行 */
+.brand { font-size: 18px; white-space: nowrap; }
+.link-btn, .topbar-login { font-size: 15px; white-space: nowrap; }
+.who { font-size: 15px; }
+@media (max-width: 380px) { .brand-text { display: none; } }
+html.big .rec .when { flex-basis: 90px; }
 .topbar-login, .link-btn { color: #fff; font-size: .95rem; }
 .link-btn { background: none; border: 1px solid rgba(255,255,255,.6); border-radius: 999px;
   padding: 2px 12px; cursor: pointer; font: inherit; font-size: .9rem; }
@@ -63,15 +74,15 @@ small, .muted { color: var(--muted); }
   grid-template-columns: repeat(4, 1fr); background: #fff; border-top: 1px solid var(--line);
   padding-bottom: env(safe-area-inset-bottom); }
 .tabbar a { display: flex; flex-direction: column; align-items: center; gap: 1px; padding: 8px 0 9px;
-  color: var(--muted); text-decoration: none; font-size: .8rem; }
-.tabbar a span { font-size: 1.25rem; line-height: 1.2; }
+  color: var(--muted); text-decoration: none; font-size: 13px; }   /* 固定 px：大字模式不影響導覽列 */
+.tabbar a span { font-size: 21px; line-height: 1.2; }
 .tabbar a.on { color: var(--primary); font-weight: 700; }
 @media (min-width: 900px) {
   body { padding-bottom: 0; }
   .tabbar { position: sticky; top: 54px; bottom: auto; max-width: 760px; margin: 0 auto;
     border: 1px solid var(--line); border-top: 0; border-radius: 0 0 var(--radius) var(--radius); }
-  .tabbar a { flex-direction: row; justify-content: center; gap: 6px; font-size: .95rem; }
-  .tabbar a span { font-size: 1.05rem; }
+  .tabbar a { flex-direction: row; justify-content: center; gap: 6px; font-size: 16px; }
+  .tabbar a span { font-size: 18px; }
 }
 
 .footer { color: var(--muted); font-size: .8rem; padding: 28px 16px 24px; text-align: center; }
@@ -214,7 +225,7 @@ input:focus { outline: none; border-color: var(--primary); }
   font-size: .7rem; line-height: 22px; color: var(--muted); }
 .dot.on { background: var(--primary); color: #fff; }
 .legend { display: flex; gap: 14px; flex-wrap: wrap; font-size: .85rem; color: var(--muted); }
-.legend i { display: inline-block; width: 14px; height: 4px; border-radius: 2px; vertical-align: middle; margin-right: 4px; }
+.legend i:not(.lg) { display: inline-block; width: 14px; height: 4px; border-radius: 2px; vertical-align: middle; margin-right: 4px; }
 
 .stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 12px; }
 .stat { background: var(--bg); border-radius: 12px; padding: 10px; text-align: center; }
@@ -267,3 +278,68 @@ input[type=date], input[type=datetime-local] { -webkit-appearance: none; appeara
 .backfill-field { display: none; margin: 12px 0 0; }
 .time-box:has(#id_backfill:checked) .backfill-field, .time-box.is-backfill .backfill-field { display: block; }
 .time-box:has(#id_backfill:checked) .now-clock { opacity: .4; }
+
+/* ---------- 722 進度格子：已量 / 待量 / 錯過 ---------- */
+.dot.done { background: var(--primary); color: #fff; }
+.dot.pending { background: #fff; border: 2px dashed var(--line); line-height: 18px; }
+.dot.missed { background: #f1e3dc; color: #b9876f; }
+.lg { display: inline-block; width: 14px; height: 14px; border-radius: 4px; vertical-align: -2px; margin-right: 4px; }
+.lg.done { background: var(--primary); }
+.lg.pending { background: #fff; border: 2px dashed var(--line); }
+.lg.missed { background: #f1e3dc; }
+.cta-722 { display: flex; gap: 12px; align-items: center; }
+.cta-722 .big { font-size: 2rem; font-weight: 800; color: var(--primary); }
+
+/* ---------- 就醫報告 ---------- */
+.report h1 { font-size: 1.4rem; text-align: center; margin-bottom: 2px; }
+.report h2 { font-size: 1.05rem; margin: 18px 0 8px; padding-left: 8px; border-left: 4px solid var(--primary); }
+.report-sub { text-align: center; color: var(--muted); margin-bottom: 12px; }
+.report-table, .report-meta { width: 100%; border-collapse: collapse; font-size: .92rem; }
+.report-table th, .report-table td, .report-meta th, .report-meta td {
+  border: 1px solid #b9cfcf; padding: 6px 4px; text-align: center; vertical-align: middle; }
+.report-table thead th, .report-meta th { background: var(--primary-soft); color: var(--ink); font-weight: 700; }
+.report-meta th { width: 18%; }
+.report-meta td.blank { min-width: 90px; }
+.report-table tbody th { background: #f7fbfb; font-weight: 600; white-space: nowrap; }
+.report-table .bp { font-weight: 700; color: var(--ink); }
+.report-table .strong td { font-weight: 800; font-size: 1.05rem; }
+.report-table .empty-cell { color: #a9b4b8; }
+.report-note { font-size: .85rem; color: var(--text); margin: 8px 0; }
+.report-notes { font-size: .88rem; padding-left: 20px; }
+.report-foot { margin-top: 18px; padding-top: 10px; border-top: 1px solid var(--line); font-size: .75rem; color: var(--muted); }
+.report-table.daily { font-size: .85rem; }
+@media (max-width: 420px) { .report-table.daily { font-size: .74rem; } .report-table th, .report-table td { padding: 5px 2px; } }
+
+@media print {
+  @page { size: A4; margin: 12mm 14mm; }
+  body { background: #fff; padding: 0; font-size: 11pt; }
+  .topbar, .tabbar, .footer, .no-print, .toast { display: none !important; }
+  .main { padding: 0; }
+  .wrap { max-width: none; padding: 0; }
+  .card { border: 0; box-shadow: none; padding: 0; }
+  .report-table, .report-meta { font-size: 9.5pt; }
+  /* 擠進一張 A4：縮小間距、日期同一行 */
+  .report h1 { font-size: 16pt; }
+  .report h2 { font-size: 11pt; margin: 10px 0 5px; break-after: avoid; }
+  .report-sub { margin-bottom: 6px; }
+  .report-table th, .report-table td, .report-meta th, .report-meta td { padding: 3px 4px; }
+  .report-table.daily tbody th br { display: none; }
+  .report-table.daily tbody th small { margin-left: 4px; }
+  .report-note, .report-notes { font-size: 9pt; margin: 4px 0; }
+  .report-foot { margin-top: 8px; font-size: 7.5pt; }
+  .report-table, .report-meta, .report-foot { break-inside: avoid; }
+  .report-table thead th, .report-meta th { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  a { color: inherit; text-decoration: none; }
+}
+
+/* 熟練模式的收合清單 */
+.quick-list { margin-top: 10px; font-size: .92rem; }
+.quick-list summary { cursor: pointer; color: var(--primary); font-weight: 600; }
+.quick-list ul { margin: 8px 0 0; padding-left: 22px; color: var(--muted); }
+
+/* ---------- 帳號設定 ---------- */
+.settings-list { display: grid; border-top: 1px solid var(--line); margin-top: 10px; }
+.settings-list a, .settings-list button { display: flex; justify-content: space-between; align-items: center;
+  padding: 14px 2px; border: 0; border-bottom: 1px solid var(--line); background: none; font: inherit;
+  color: var(--text); text-decoration: none; cursor: pointer; text-align: left; width: 100%; }
+.settings-list .go { color: var(--muted); }

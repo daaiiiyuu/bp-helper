@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+{% block title %}開始我的 722 週{% endblock %}
+{% block content %}
+<a class="back" href="{% url 'records:list' %}">‹ 我的紀錄</a>
+<h1>開始我的 722 週</h1>
+<div class="card card-soft">
+  <div class="rule722">
+    <div><b>7</b><span>連續量 7 天</span></div>
+    <div><b>2</b><span>早晚各量<br>1 次</span></div>
+    <div><b>2</b><span>每次 2 遍<br>取平均</span></div>
+  </div>
+  <p style="margin:12px 0 0">國健署建議 18 歲以上民眾，每年至少用 722 原則在家量一次血壓。
+  完成後可以列印「就醫報告」，看診時帶給醫師參考。</p>
+  <p class="source">資料來源：<a href="{{ source.url }}" target="_blank" rel="noopener">{{ source.name }}</a></p>
+</div>
+
+{% if active %}
+<div class="toast toast-warning">你已經有一個進行中的 722 週（{{ active.start_date|date:"m/d" }}–{{ active.end_date|date:"m/d" }}）。
+  重新開始會建立新的一週，舊的紀錄不會被刪除。<a href="{% url 'records:challenge' active.pk %}">回到目前的 722 週 ›</a></div>
+{% endif %}
+
+<form method="post" class="card" novalidate>
+  {% csrf_token %}
+  <div class="field">
+    <label>{{ form.start_when.label }}</label>
+    <div class="radio-row">{{ form.start_when }}</div>{{ form.start_when.errors }}
+    <div class="help">晚上才開始的話，建議從明天開始，才不會一開始就錯過今天早上。</div>
+  </div>
+  <p class="muted" style="margin-bottom:8px">提醒時間（之後可以一鍵加入手機行事曆）</p>
+  <div class="filter">
+    <div class="field" style="margin:0">
+      <label for="id_morning_time">☀️ 起床後</label>{{ form.morning_time }}{{ form.morning_time.errors }}
+    </div>
+    <div class="field" style="margin:0">
+      <label for="id_evening_time">🌙 睡前</label>{{ form.evening_time }}{{ form.evening_time.errors }}
+    </div>
+  </div>
+  <button class="btn btn-block" type="submit" style="margin-top:16px">開始 722 週</button>
+</form>
+{% endblock %}

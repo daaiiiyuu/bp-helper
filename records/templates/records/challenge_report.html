@@ -1,0 +1,76 @@
+{% extends "base.html" %}
+{% block title %}722 就醫報告{% endblock %}
+{% block content %}
+<div class="no-print" style="margin-bottom:12px">
+  <a class="back" href="{% url 'records:challenge' challenge.pk %}">‹ 我的 722 週</a>
+  {% if not finished %}<div class="toast toast-warning">這週還沒結束，這是目前的進度；7 天量完後再列印會比較完整。</div>{% endif %}
+  <button class="btn btn-block" onclick="window.print()">🖨️ 列印／存成 PDF</button>
+</div>
+
+<article class="report card">
+  <header class="report-head">
+    <h1>居家血壓 722 量測紀錄</h1>
+    <p class="report-sub">請於看診時提供醫師參考</p>
+    <table class="report-meta">
+      <tr><th>姓名</th><td class="blank"></td><th>量測期間</th><td>{{ progress.start|date:"Y/m/d" }}–{{ progress.end|date:"m/d" }}（7 天）</td></tr>
+      <tr><th>量測手臂</th><td>□ 左手　□ 右手</td><th>完成次數</th><td>{{ progress.done }} / {{ progress.total }} 次</td></tr>
+    </table>
+  </header>
+
+  <h2>平均值</h2>
+  <table class="report-table avg-table">
+    <thead><tr><th></th><th>收縮壓<br><small>mmHg</small></th><th>舒張壓<br><small>mmHg</small></th><th>心跳<br><small>次/分</small></th><th>次數</th></tr></thead>
+    <tbody>
+      <tr class="strong"><th>7 天整體</th>{% if progress.avg %}<td>{{ progress.avg.sys }}</td><td>{{ progress.avg.dia }}</td><td>{{ progress.avg.pulse }}</td><td>{{ progress.avg.n }}</td>{% else %}<td colspan="4">尚無紀錄</td>{% endif %}</tr>
+      <tr><th>早上（起床後）</th>{% if progress.avg_morning %}<td>{{ progress.avg_morning.sys }}</td><td>{{ progress.avg_morning.dia }}</td><td>{{ progress.avg_morning.pulse }}</td><td>{{ progress.avg_morning.n }}</td>{% else %}<td colspan="4">—</td>{% endif %}</tr>
+      <tr><th>晚上（睡前）</th>{% if progress.avg_evening %}<td>{{ progress.avg_evening.sys }}</td><td>{{ progress.avg_evening.dia }}</td><td>{{ progress.avg_evening.pulse }}</td><td>{{ progress.avg_evening.n }}</td>{% else %}<td colspan="4">—</td>{% endif %}</tr>
+    </tbody>
+  </table>
+
+  <h2>每日紀錄</h2>
+  <table class="report-table daily">
+    <thead>
+      <tr><th rowspan="2">日期</th><th colspan="3">早上（起床後）</th><th colspan="3">晚上（睡前）</th></tr>
+      <tr><th>時間</th><th>血壓</th><th>心跳</th><th>時間</th><th>血壓</th><th>心跳</th></tr>
+    </thead>
+    <tbody>
+    {% for d in progress.days %}
+      <tr>
+        <th>第 {{ d.day_no }} 天<br><small>{{ d.label }}（{{ d.weekday }}）</small></th>
+        {% for slot in d.slots %}
+          {% if slot.records %}
+            <td>{% for r in slot.records %}{{ r.measured_at|time:"H:i" }}{% if not forloop.last %}<br>{% endif %}{% endfor %}</td>
+            <td class="bp">{% for r in slot.records %}{{ r.systolic }}/{{ r.diastolic }}{% if r.readings_count == 1 %}<sup>＊</sup>{% endif %}{% if not forloop.last %}<br>{% endif %}{% endfor %}</td>
+            <td>{% for r in slot.records %}{{ r.pulse }}{% if not forloop.last %}<br>{% endif %}{% endfor %}</td>
+          {% elif slot.state == "missed" %}
+            <td colspan="3" class="empty-cell">未量測</td>
+          {% else %}
+            <td colspan="3" class="empty-cell">—</td>
+          {% endif %}
+        {% endfor %}
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  <p class="report-note">血壓單位 mmHg；每次量測為 2 遍的平均值，標 ＊ 者為只量 1 遍。</p>
+
+  {% if notes %}
+  <h2>備註</h2>
+  <ul class="report-notes">
+    {% for r in notes %}<li>{{ r.measured_at|date:"m/d H:i" }}：{{ r.note }}</li>{% endfor %}
+  </ul>
+  {% endif %}
+
+  <h2>量測方式</h2>
+  <p class="report-note">依國民健康署「722」原則：連續 7 天，每天早上起床後、晚上睡覺前各量 1 次，每次量 2 遍取平均。
+  量測前半小時避免抽菸、進食、洗澡、運動、喝酒、喝咖啡或茶，不憋尿，靜坐休息 5 分鐘；
+  坐有靠背的椅子、雙腳平放，壓脈帶中心約與心臟同高。</p>
+  <p class="report-note">參考：國健署指出健康成人 7 天血壓平均超過 {{ progress.ref_sys }}/{{ progress.ref_dia }} mmHg，宜調整生活型態並持續觀察，未改善可諮詢醫療人員。</p>
+
+  <footer class="report-foot">
+    本表由使用者在家自行量測、輸入，僅供參考，不能取代醫師診斷。<br>
+    資料來源：{{ source.name }}（{{ source.url }}）；{{ ref_source.url }}<br>
+    列印時間：{{ printed_at|date:"Y/m/d H:i" }}・居家量血壓小幫手
+  </footer>
+</article>
+{% endblock %}
