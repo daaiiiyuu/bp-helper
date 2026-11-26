@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+{% block title %}修改紀錄{% endblock %}
+{% block content %}
+<a class="back" href="{% url 'records:list' %}">‹ 回到紀錄</a>
+<h1>修改紀錄</h1>
+<form method="post" class="card" novalidate>
+  {% csrf_token %}
+  {% if form.non_field_errors %}<div class="form-errors">{{ form.non_field_errors }}</div>{% endif %}
+  {% for f in form %}
+  <div class="field">
+    <label for="{{ f.id_for_label }}">{{ f.label }}</label>
+    {% if f.name == 'period' %}<div class="radio-row">{{ f }}</div>{% else %}{{ f }}{% endif %}
+    {{ f.errors }}
+  </div>
+  {% endfor %}
+  {% if record.readings_count == 2 %}<p class="muted" style="font-size:.85rem">這筆是兩遍的平均值。</p>{% endif %}
+  <button class="btn btn-block" type="submit">儲存修改</button>
+</form>
+{% endblock %}

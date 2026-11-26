@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% block title %}量測前檢查清單{% endblock %}
+{% block content %}
+<h1>量測前檢查清單</h1>
+<p class="muted">每一項都確認後再開始量測，量出來的數值才準確。</p>
+<form method="post" class="card" novalidate>
+  {% csrf_token %}
+  {% if form.errors %}<div class="form-errors">還有項目沒確認，請逐項檢查喔。</div>{% endif %}
+  <ul class="checklist">
+    {% for f in form %}
+    <li><label class="check-item{% if f.errors %} has-error{% endif %}">{{ f }}<span>{{ f.label }}</span></label></li>
+    {% endfor %}
+  </ul>
+  <button type="submit" class="btn btn-block" style="margin-top:16px">全部確認完成</button>
+  <p class="source">依據：<a href="{{ source.url }}" target="_blank" rel="noopener">{{ source.name }}</a></p>
+</form>
+{% endblock %}

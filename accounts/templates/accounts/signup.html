@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+{% block title %}註冊{% endblock %}
+{% block content %}
+<h1>註冊帳號</h1>
+<p class="muted">只需要帳號與密碼，不收集姓名、電話等個人資料。</p>
+<form method="post" class="card" novalidate>
+  {% csrf_token %}
+  {% for f in form %}
+  <div class="field">
+    <label for="{{ f.id_for_label }}">{{ f.label }}</label>{{ f }}
+    {{ f.errors }}
+    {% if f.name == 'username' %}<div class="help">英文、數字或 @ . + - _，150 字以內</div>
+    {% elif f.name == 'password1' %}<div class="help">至少 6 個字元，不要太常見、不要和帳號太像</div>{% endif %}
+  </div>
+  {% endfor %}
+  <button type="submit" class="btn btn-block">註冊並登入</button>
+  <p style="text-align:center;margin:14px 0 0">已經有帳號？<a href="{% url 'accounts:login' %}">登入</a></p>
+</form>
+{% endblock %}

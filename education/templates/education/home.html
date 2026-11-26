@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+{% block title %}首頁{% endblock %}
+{% block content %}
+{# ① 首頁：網站名稱與兩個主要入口 #}
+<section class="hero">
+  <div class="hero-art">{% include "education/illus/hero.html" %}</div>
+  <h1>居家量血壓小幫手</h1>
+  <p class="tagline">讓居家量測更容易理解，也讓每日血壓紀錄更有條理。</p>
+</section>
+
+<div class="entry">
+  <a class="btn btn-block" href="{% url 'education:topics' %}">📖 開始學習</a>
+  <a class="btn btn-outline btn-block" href="{% url 'records:create' %}">✍️ 記錄血壓</a>
+  <a class="btn btn-outline btn-block" href="{% url 'records:list' %}">📈 我的紀錄</a>
+</div>
+
+<section class="card card-soft">
+  <h2>國健署「722」居家量測原則</h2>
+  <div class="rule722">
+    <div><b>7</b><span>連續量 7 天</span></div>
+    <div><b>2</b><span>早晚各量<br>1 次</span></div>
+    <div><b>2</b><span>每次 2 遍<br>取平均</span></div>
+  </div>
+</section>
+
+<section class="card">
+  <h2>回家後這樣用</h2>
+  <ol class="flow">
+    <li><span>選一個衛教主題，看圖學正確量法</span></li>
+    <li><span>做 5 題小測驗，確認自己記住了</span></li>
+    <li><span>量之前，用檢查清單逐項確認</span></li>
+    <li><span>輸入血壓，回看歷史紀錄與趨勢</span></li>
+  </ol>
+  <p class="muted" style="margin-top:12px">不必一次讀完，想看哪一步就點哪個主題。</p>
+  <div class="btn-row">
+    <a class="btn btn-outline btn-sm" href="{% url 'education:quiz_start' %}">做小測驗</a>
+    <a class="btn btn-outline btn-sm" href="{% url 'education:checklist' %}">量測前檢查清單</a>
+  </div>
+</section>
+{% endblock %}

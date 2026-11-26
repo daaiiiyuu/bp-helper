@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+{% block title %}{{ topic.title }}{% endblock %}
+{% block content %}
+{# ③ 圖文學習：一頁一步驟，圖片＋短句 #}
+<a class="back" href="{% url 'education:topics' %}">‹ 所有主題</a>
+<div class="card">
+  <span class="badge">{{ topic.title }}</span>
+  <span class="step-count">　{{ step }} / {{ total }}</span>
+  <div class="progress"><span style="width: {{ progress }}%"></span></div>
+
+  <div class="step-illus">{% include "education/illus/"|add:item.illus|add:".html" %}</div>
+  <h2>{{ item.title }}</h2>
+  <p>{{ item.body }}</p>
+
+  <div class="step-nav">
+    {% if prev_step %}
+      <a class="btn btn-outline" href="{% url 'education:topic_step' topic.slug prev_step %}">‹ 上一步</a>
+    {% else %}
+      <a class="btn btn-outline" href="{% url 'education:topics' %}">‹ 主題列表</a>
+    {% endif %}
+    {% if next_step %}
+      <a class="btn" href="{% url 'education:topic_step' topic.slug next_step %}">下一步 ›</a>
+    {% endif %}
+  </div>
+
+  {% if is_last %}
+  <div class="feedback ok">
+    <h3>✓ 這個主題看完了！</h3>
+    <div class="btn-row" style="margin-top:8px">
+      {% if next_topic %}
+        <a class="btn btn-sm" href="{% url 'education:topic' next_topic.slug %}">下一個主題：{{ next_topic.title }}</a>
+      {% else %}
+        <a class="btn btn-sm" href="{% url 'education:quiz_start' %}">去做小測驗</a>
+      {% endif %}
+      {% if topic.slug == 'steps' %}
+        <a class="btn btn-outline btn-sm" href="{% url 'records:create' %}">現在就記錄血壓</a>
+      {% endif %}
+    </div>
+  </div>
+  {% endif %}
+
+  <p class="source">資料來源：<a href="{{ source.url }}" target="_blank" rel="noopener">{{ source.name }}</a></p>
+</div>
+{% endblock %}

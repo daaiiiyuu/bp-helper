@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+{% block title %}登入{% endblock %}
+{% block content %}
+<h1>登入</h1>
+<p class="muted">登入後才能記錄、查看自己的血壓。衛教內容與測驗不用登入也能看。</p>
+<form method="post" class="card" novalidate>
+  {% csrf_token %}
+  {% if form.non_field_errors %}<div class="form-errors">帳號或密碼不正確，請再試一次。</div>{% endif %}
+  <div class="field"><label for="id_username">帳號</label>{{ form.username }}</div>
+  <div class="field"><label for="id_password">密碼</label>{{ form.password }}</div>
+  <input type="hidden" name="next" value="{{ next }}">
+  <button type="submit" class="btn btn-block">登入</button>
+  <p style="text-align:center;margin:14px 0 0">還沒有帳號？<a href="{% url 'accounts:signup' %}{% if next %}?next={{ next|urlencode }}{% endif %}">註冊一個</a></p>
+</form>
+{% endblock %}

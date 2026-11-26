@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+{% block title %}刪除紀錄{% endblock %}
+{% block content %}
+<div class="card">
+  <h1>確定要刪除這筆紀錄？</h1>
+  <p>{{ record.measured_at|date:"Y/m/d H:i" }}（{{ record.get_period_display }}）<br>
+     <b style="font-size:1.3rem">{{ record.systolic }}/{{ record.diastolic }} mmHg</b>，心跳 {{ record.pulse }}</p>
+  <p class="muted">刪除後無法復原。</p>
+  <form method="post" class="btn-row">
+    {% csrf_token %}
+    <a class="btn btn-outline" href="{% url 'records:list' %}">取消</a>
+    <button class="btn btn-danger" type="submit">確定刪除</button>
+  </form>
+</div>
+{% endblock %}

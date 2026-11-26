@@ -1,0 +1,103 @@
+{% extends "base.html" %}
+{% block title %}我的紀錄{% endblock %}
+{% block content %}
+{# ⑥ 歷史紀錄：722 進度、趨勢圖、依日期篩選 #}
+<div style="display:flex;justify-content:space-between;align-items:center;gap:10px">
+  <h1 style="margin:0">我的血壓紀錄</h1>
+  <a class="btn btn-sm" href="{% url 'records:create' %}">＋ 新增</a>
+</div>
+
+<section class="card" style="margin-top:14px">
+  <h2>最近 7 天的 722 進度</h2>
+  <p class="muted" style="margin:0">早上、晚上各一格，已完成 <b style="color:var(--primary)">{{ progress.sessions }}</b> / {{ progress.total_sessions }} 次</p>
+  <div class="week">
+    {% for d in progress.days %}
+    <div class="d{% if d.is_today %} today{% endif %}">{{ d.label }}<br>{% if d.is_today %}今天{% else %}週{{ d.weekday }}{% endif %}
+      <span class="dot{% if d.morning %} on{% endif %}" title="早上">早</span>
+      <span class="dot{% if d.evening %} on{% endif %}" title="晚上">晚</span>
+    </div>
+    {% endfor %}
+  </div>
+  {% if progress.has_avg %}
+  <div class="stats">
+    <div class="stat"><small>平均收縮壓</small><b>{{ progress.avg_sys }}</b><small>mmHg</small></div>
+    <div class="stat"><small>平均舒張壓</small><b>{{ progress.avg_dia }}</b><small>mmHg</small></div>
+    <div class="stat"><small>平均心跳</small><b>{{ progress.avg_pulse }}</b><small>次/分</small></div>
+  </div>
+  <div class="ref-note{% if progress.above_ref %} above{% endif %}">
+    {% if progress.above_ref %}<b>這 7 天的平均超過國健署參考值 {{ progress.ref_sys }}/{{ progress.ref_dia }} mmHg。</b><br>{% endif %}
+    國健署建議：健康成人 7 天血壓平均超過 {{ progress.ref_sys }}/{{ progress.ref_dia }} mmHg，宜積極調整飲食、運動與作息並持續觀察；若仍未改善，可諮詢醫療人員。
+    （平均只計算早上、晚上兩個時段。）
+    <a href="{{ ref_source.url }}" target="_blank" rel="noopener">來源</a>
+  </div>
+  {% endif %}
+</section>
+
+<section class="card chart">
+  <h2>血壓趨勢</h2>
+  {% if chart %}
+  <div class="legend"><span><i style="background:var(--sys)"></i>收縮壓</span><span><i style="background:var(--dia)"></i>舒張壓</span><span><i style="background:#9aa;height:2px"></i>國健署參考值 {{ chart.ref_sys }}/{{ chart.ref_dia }}</span></div>
+  <svg viewBox="0 0 {{ chart.width }} {{ chart.height }}" role="img" aria-label="最近 {{ chart.count }} 筆血壓趨勢圖">
+    <g class="grid">
+      {% for g in chart.grid %}
+        <line x1="{{ chart.left }}" x2="{{ chart.right }}" y1="{{ g.y }}" y2="{{ g.y }}"/>
+        <text x="{{ chart.left|add:'-8' }}" y="{{ g.y }}" text-anchor="end" dominant-baseline="middle">{{ g.v }}</text>
+      {% endfor %}
+    </g>
+    <line class="ref" x1="{{ chart.left }}" x2="{{ chart.right }}" y1="{{ chart.ref_sys_y }}" y2="{{ chart.ref_sys_y }}" stroke="#c8443a" opacity=".55"/>
+    <line class="ref" x1="{{ chart.left }}" x2="{{ chart.right }}" y1="{{ chart.ref_dia_y }}" y2="{{ chart.ref_dia_y }}" stroke="#2f6fb3" opacity=".55"/>
+    <polyline points="{{ chart.sys_path }}" fill="none" stroke="#c8443a" stroke-width="3" stroke-linejoin="round"/>
+    <polyline points="{{ chart.dia_path }}" fill="none" stroke="#2f6fb3" stroke-width="3" stroke-linejoin="round"/>
+    {% for p in chart.sys_points %}<circle cx="{{ p.x }}" cy="{{ p.y }}" r="4" fill="#c8443a"><title>{{ p.label }} 收縮壓 {{ p.v }}</title></circle>{% endfor %}
+    {% for p in chart.dia_points %}<circle cx="{{ p.x }}" cy="{{ p.y }}" r="4" fill="#2f6fb3"><title>{{ p.label }} 舒張壓 {{ p.v }}</title></circle>{% endfor %}
+    <g class="xl">{% for l in chart.x_labels %}<text x="{{ l.x }}" y="{{ chart.bottom|add:'30' }}" text-anchor="{{ l.anchor }}">{{ l.text }}</text>{% endfor %}</g>
+  </svg>
+  <p class="muted" style="font-size:.82rem;margin:6px 0 0">顯示{% if is_filtered %}篩選範圍內{% endif %}最近 {{ chart.count }} 筆。</p>
+  {% else %}
+  <div class="empty">至少要有 2 筆紀錄才會畫出趨勢圖。</div>
+  {% endif %}
+</section>
+
+<section class="card">
+  <h2>依日期篩選</h2>
+  <form method="get" class="filter">
+    <div class="field" style="margin:0"><label for="id_start">開始日期</label>{{ filter_form.start }}</div>
+    <div class="field" style="margin:0"><label for="id_end">結束日期</label>{{ filter_form.end }}</div>
+    {% if filter_form.non_field_errors %}<div style="grid-column:1/-1">{{ filter_form.non_field_errors }}</div>{% endif %}
+    <div class="btn-row">
+      <button class="btn btn-sm" type="submit">篩選</button>
+      {% if is_filtered %}<a class="btn btn-outline btn-sm" href="{% url 'records:list' %}">清除篩選</a>{% endif %}
+      <a class="btn btn-outline btn-sm" href="{% url 'records:export' %}{% if query %}?{{ query }}{% endif %}">匯出 CSV</a>
+    </div>
+  </form>
+</section>
+
+<section class="card">
+  <h2>紀錄列表 <small class="muted">（共 {{ total }} 筆）</small></h2>
+  {% for r in page %}
+  <div class="rec">
+    <div class="when"><b>{{ r.measured_at|date:"m/d" }}</b>{{ r.measured_at|date:"H:i" }}<br>{{ r.get_period_display|slice:":2" }}</div>
+    <div class="val">
+      <b>{{ r.systolic }}/{{ r.diastolic }}</b> <small class="muted" style="display:inline">mmHg</small>
+      <small class="muted">心跳 {{ r.pulse }}・{% if r.readings_count == 2 %}兩遍平均{% else %}單次{% endif %}{% if r.note %}・{{ r.note }}{% endif %}</small>
+    </div>
+    <div class="ops">
+      <a href="{% url 'records:edit' r.pk %}">修改</a>
+      <a href="{% url 'records:delete' r.pk %}" style="color:#b93a32">刪除</a>
+    </div>
+  </div>
+  {% empty %}
+  <div class="empty">
+    {% if is_filtered %}這段期間沒有紀錄。{% else %}還沒有任何紀錄。<br><br><a class="btn" href="{% url 'records:create' %}">記錄第一筆血壓</a>{% endif %}
+  </div>
+  {% endfor %}
+
+  {% if page.has_other_pages %}
+  <div class="pager">
+    {% if page.has_previous %}<a class="btn btn-outline btn-sm" href="?{% if query %}{{ query }}&{% endif %}page={{ page.previous_page_number }}">‹ 較新</a>{% endif %}
+    <span class="muted">{{ page.number }} / {{ page.paginator.num_pages }}</span>
+    {% if page.has_next %}<a class="btn btn-outline btn-sm" href="?{% if query %}{{ query }}&{% endif %}page={{ page.next_page_number }}">較舊 ›</a>{% endif %}
+  </div>
+  {% endif %}
+</section>
+{% endblock %}

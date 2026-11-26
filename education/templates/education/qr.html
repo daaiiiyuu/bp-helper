@@ -1,0 +1,11 @@
+{% extends "base.html" %}
+{% block title %}掃碼開啟{% endblock %}
+{% block content %}
+<div class="card" style="text-align:center">
+  <h1>手機掃碼即可開啟</h1>
+  <p class="muted">門診衛教時給民眾掃描，回家後可以自己複習與記錄。</p>
+  <div class="qr-box">{{ svg|safe }}</div>
+  <p style="margin-top:12px;word-break:break-all"><a href="{{ site_url }}">{{ site_url }}</a></p>
+  <button class="btn btn-outline" onclick="window.print()">列印這張 QR Code</button>
+</div>
+{% endblock %}

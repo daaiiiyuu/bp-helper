@@ -1,0 +1,10 @@
+{% extends "base.html" %}
+{% block title %}檢查完成{% endblock %}
+{% block content %}
+<div class="card" style="text-align:center">
+  <div style="font-size:3rem;color:var(--ok)">✓</div>
+  <h1>準備完成，可以開始量了！</h1>
+  <p>記得量兩遍。量完之後，把兩遍的數值都輸入，系統會幫你算平均。</p>
+  <a class="btn btn-block" href="{% url 'records:create' %}">輸入這次的血壓</a>
+</div>
+{% endblock %}

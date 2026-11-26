@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% block title %}選擇主題{% endblock %}
+{% block content %}
+{# ② 選擇主題：4 個衛教主題自選，看過打勾 #}
+<h1>選擇衛教主題</h1>
+<p class="muted">已看完 {{ done_count }} / {{ total }} 個主題</p>
+<div class="progress"><span style="width: {% widthratio done_count total 100 %}%"></span></div>
+
+<div class="topic-list">
+  {% for t in topics %}
+  <a class="topic-item{% if t.done %} done{% endif %}" href="{% url 'education:topic' t.slug %}">
+    <span class="num">{{ forloop.counter }}</span>
+    <span class="t"><b>{{ t.title }}</b><small class="muted">{{ t.summary }}・{{ t.steps|length }} 頁</small></span>
+    {% if t.done %}<span class="tick" aria-label="已看過">✓</span>{% else %}<span class="muted">›</span>{% endif %}
+  </a>
+  {% endfor %}
+</div>
+
+<div class="card card-soft" style="margin-top:18px">
+  <h3>看完了嗎？</h3>
+  <p>做 5 題小測驗，確認自己是不是真的記住了。</p>
+  <a class="btn btn-block" href="{% url 'education:quiz_start' %}">開始小測驗</a>
+</div>
+{% endblock %}

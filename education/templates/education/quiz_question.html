@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+{% block title %}小測驗 第 {{ position }} 題{% endblock %}
+{% block content %}
+{# ④ Quiz：即時回饋、錯題解說、返回重新複習（Teach-back 回覆示教） #}
+<div class="card">
+  <span class="badge">第 {{ position }} / {{ total }} 題</span>
+  <div class="progress"><span style="width: {{ progress }}%"></span></div>
+  <h1 class="q-title">Q{{ position }}. {{ question.text }}</h1>
+
+  <form method="post" class="choices">
+    {% csrf_token %}
+    {% for c in choices %}
+      <button type="submit" name="choice" value="{{ c.label }}"
+        class="choice{% if answered %}{% if c.is_correct %} right{% elif c.label == selected %} wrong{% endif %}{% endif %}"
+        {% if answered %}disabled{% endif %}>
+        <span class="lbl">{{ c.label }}</span>
+        <span>{{ c.text }}</span>
+        {% if answered %}
+          {% if c.is_correct %}<span class="mark">✓</span>{% elif c.label == selected %}<span class="mark">✗</span>{% endif %}
+        {% endif %}
+      </button>
+    {% endfor %}
+  </form>
+
+  {% if answered %}
+    {% if is_correct %}
+      <div class="feedback ok" role="status">
+        <h3>✓ 正確！</h3>
+        <p>{{ question.explanation }}</p>
+      </div>
+    {% else %}
+      <div class="feedback no" role="status">
+        <h3>再複習一下！正確答案是 {{ correct_choice.label }}. {{ correct_choice.text }}</h3>
+        <p>{{ question.explanation }}</p>
+        {% if question.tip %}<p><b>小提醒：</b>{{ question.tip }}</p>{% endif %}
+        {% if review_url %}<a class="btn btn-outline btn-sm" href="{{ review_url }}">返回重新複習「{{ review_title }}」</a>{% endif %}
+      </div>
+    {% endif %}
+    <div class="step-nav">
+      {% if next_order %}
+        <a class="btn" href="{% url 'education:quiz_question' next_order %}">下一題 ›</a>
+      {% else %}
+        <a class="btn" href="{% url 'education:quiz_result' %}">看測驗結果 ›</a>
+      {% endif %}
+    </div>
+  {% endif %}
+</div>
+{% endblock %}

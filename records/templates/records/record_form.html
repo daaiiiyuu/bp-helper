@@ -1,0 +1,122 @@
+{% extends "base.html" %}
+{% block title %}輸入血壓{% endblock %}
+{% block content %}
+{# ⑤ 輸入血壓：先完成檢查清單，再填數值 #}
+<h1>輸入血壓</h1>
+<form method="post" novalidate>
+  {% csrf_token %}
+  {% if form.non_field_errors %}<div class="form-errors">{{ form.non_field_errors }}</div>{% endif %}
+
+  <section class="card">
+    <div class="step-head"><span class="n">1</span><h2>量測前檢查</h2></div>
+    {% if checklist_done %}
+      <div class="done-banner">✓ 量測前檢查清單已完成</div>
+    {% else %}
+      <p class="muted">每一項都打勾後才能儲存。</p>
+      <ul class="checklist">
+        {% for f in form.checklist_fields %}
+        <li><label class="check-item{% if f.errors %} has-error{% endif %}">{{ f }}<span>{{ f.label }}</span></label></li>
+        {% endfor %}
+      </ul>
+      {% if form.errors and form.checklist_fields.0.errors %}<ul class="errorlist"><li>還有檢查項目沒打勾</li></ul>{% endif %}
+    {% endif %}
+  </section>
+
+  <section class="card">
+    <div class="step-head"><span class="n">2</span><h2>量測時間</h2></div>
+
+    {# 預設：自動使用按下「儲存」那一刻的時間，不用手打 #}
+    <div class="time-box">
+      <div class="now-clock">
+        <span class="now-icon" aria-hidden="true">🕒</span>
+        <div>
+          <b id="now-text">{{ now|date:"Y/m/d H:i" }}</b>
+          <small class="muted">儲存時自動記錄當下時間</small>
+        </div>
+      </div>
+
+      <label class="toggle">
+        {{ form.backfill }}<span>{{ form.backfill.label }}</span>
+      </label>
+      <div class="backfill-field field">
+        <label for="{{ form.measured_at.id_for_label }}">{{ form.measured_at.label }}</label>
+        {{ form.measured_at }}{{ form.measured_at.errors }}
+        <div class="help">例如昨天量了但忘記記錄，可以在這裡補登。</div>
+      </div>
+    </div>
+
+    <div class="field" style="margin-top:14px">
+      <label>{{ form.period.label }}</label>
+      <div class="radio-row" id="period-row">{{ form.period }}</div>{{ form.period.errors }}
+      <div class="help">已依時間自動選好，有需要可以自己改。</div>
+    </div>
+  </section>
+
+  <section class="card">
+    <div class="step-head"><span class="n">3</span><h2>輸入數值</h2></div>
+    <p class="muted">722 原則：每次量 2 遍。兩遍都填，系統會自動取平均。</p>
+    <table class="readings">
+      <thead><tr><th></th><th>收縮壓<br><small>mmHg</small></th><th>舒張壓<br><small>mmHg</small></th><th>心跳<br><small>次/分</small></th></tr></thead>
+      <tbody>
+      {% for name, s, d, p in form.reading_rows %}
+        <tr>
+          <th class="row-h">{{ name }}{% if forloop.first %}<br><small class="muted">必填</small>{% else %}<br><small class="muted">建議填</small>{% endif %}</th>
+          <td>{{ s }}{{ s.errors }}</td><td>{{ d }}{{ d.errors }}</td><td>{{ p }}{{ p.errors }}</td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+    <p class="muted" style="font-size:.85rem;margin-top:6px">收縮壓是血壓計上面較大的數字，舒張壓是下面較小的數字。</p>
+    <div class="field">
+      <label for="{{ form.note.id_for_label }}">{{ form.note.label }}</label>
+      {{ form.note }}{{ form.note.errors }}
+    </div>
+  </section>
+
+  <button type="submit" class="btn btn-block">儲存紀錄</button>
+</form>
+
+<script>
+/* 量測時間自動化（沒有 JavaScript 也能正常儲存，這裡只是讓畫面更即時）
+   1. 時鐘每 15 秒更新一次
+   2. 依時間自動選「早上／晚上／其他」，使用者手動點過時段就不再自動改 */
+(function () {
+  const clock = document.getElementById("now-text");
+  const backfill = document.getElementById("id_backfill");
+  const dt = document.getElementById("id_measured_at");
+  const radios = document.querySelectorAll('#period-row input[type=radio]');
+  let periodTouched = {{ form.is_bound|yesno:"true,false" }};
+  const week = "日一二三四五六";
+  const pad = n => String(n).padStart(2, "0");
+
+  function guessPeriod(d) {            // 與 records/forms.py 的 guess_period() 規則相同
+    const h = d.getHours();
+    if (h >= 4 && h < 12) return "morning";
+    if (h >= 18 || h < 4) return "evening";
+    return "other";
+  }
+  function setPeriod(d) {
+    if (periodTouched || isNaN(d)) return;
+    radios.forEach(r => { r.checked = (r.value === guessPeriod(d)); });
+  }
+  function tick() {
+    const d = new Date();
+    clock.textContent = `${d.getFullYear()}/${pad(d.getMonth() + 1)}/${pad(d.getDate())}（${week[d.getDay()]}）${pad(d.getHours())}:${pad(d.getMinutes())}`;
+    if (!backfill.checked) setPeriod(d);
+  }
+  radios.forEach(r => r.addEventListener("change", () => { periodTouched = true; }));
+  dt.addEventListener("change", () => setPeriod(new Date(dt.value)));
+  const box = document.querySelector(".time-box");
+  const sync = () => box.classList.toggle("is-backfill", backfill.checked);  // 給不支援 :has() 的舊瀏覽器
+  sync();
+  backfill.addEventListener("change", () => {
+    sync();
+    if (backfill.checked) { dt.focus(); setPeriod(new Date(dt.value)); } else { tick(); }
+  });
+  // 補登欄位不能選未來時間
+  dt.max = (() => { const d = new Date(); return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`; })();
+  tick();
+  setInterval(tick, 15000);
+})();
+</script>
+{% endblock %}

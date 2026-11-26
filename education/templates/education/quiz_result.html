@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% block title %}測驗結果{% endblock %}
+{% block content %}
+<div class="card" style="text-align:center">
+  <p class="muted">你的測驗結果</p>
+  <div class="score-big">{{ score }} / {{ total }}</div>
+  {% if all_correct %}
+    <h2 style="margin-top:10px">全部答對，太棒了！</h2>
+    <p>你已經掌握正確的居家量測方法，可以開始記錄血壓了。</p>
+  {% else %}
+    <h2 style="margin-top:10px">再複習一下會更好</h2>
+    <p>看看下面答錯的題目，點「複習」回到對應的衛教主題，再試一次。</p>
+  {% endif %}
+  <div class="btn-row">
+    <a class="btn" href="{% url 'records:create' %}">去記錄血壓</a>
+    <a class="btn btn-outline" href="{% url 'education:quiz_start' %}">重新測驗</a>
+  </div>
+</div>
+
+<div class="card">
+  <h2>逐題回顧</h2>
+  {% for r in rows %}
+  <div class="result-row">
+    <span class="ic" style="color: {% if r.correct %}var(--ok){% else %}var(--warn){% endif %}">{% if r.correct %}✓{% elif r.answered %}✗{% else %}－{% endif %}</span>
+    <div>
+      <b>Q{{ forloop.counter }}. {{ r.question.text }}</b><br>
+      <small class="muted">正確答案：{{ r.correct_choice.label }}. {{ r.correct_choice.text }}{% if r.answered and not r.correct %}　｜你選了 {{ r.label }}{% endif %}{% if not r.answered %}　｜未作答{% endif %}</small>
+      {% if not r.correct and r.topic %}<br><a href="{% url 'education:topic' r.topic.slug %}">複習「{{ r.topic.title }}」›</a>{% endif %}
+    </div>
+  </div>
+  {% endfor %}
+</div>
+{% endblock %}
